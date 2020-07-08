@@ -7,8 +7,7 @@ const routes = express.Router();
 
 routes.get('/recipes/', celebrate({
     [Segments.QUERY]: Joi.object().keys({
-        i: Joi.string().required()
+        i: Joi.string(),
     }),
 }),RecipeController.get);
-
 module.exports = routes;
