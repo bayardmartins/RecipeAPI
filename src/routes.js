@@ -10,4 +10,5 @@ routes.get('/recipes/', celebrate({
         i: Joi.string(),
     }),
 }),RecipeController.get);
+
 module.exports = routes;
