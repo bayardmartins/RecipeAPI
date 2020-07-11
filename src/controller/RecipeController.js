@@ -1,9 +1,11 @@
-const apiRecipePuppyURL = 'http://www.recipepuppy.com/api/';
-const apiGiphyURL = 'https://api.giphy.com/v1/gifs/'
-const giphyApiKey = 'xuPpgAnyMOuLRmqF3UjgCYvWRv6jLs24'
+const config = require('../../config');
 const util = require('util');
 const request = require('request');
 const requestPromise = util.promisify(request);
+
+const apiRecipePuppyURL = config.apiRecipePuppyURL;
+const apiGiphyURL = config.apiGiphyURL;
+const giphyApiKey = config.giphyApiKey;
 
 function getIngredientArray(pQuery){
   var ingredientArray = pQuery.split(',');
@@ -63,13 +65,6 @@ function getGif(pTitle){
 };
 
 module.exports = {
-  // async get (req,res) {
-  //   console.log('start')
-  //   const gif = await getGif('Pasta Simple Recipe');
-  //   console.log('sending' + gif);
-  //   return res.json(gif);
-  // }
-
   async get (req,res) {
     const url = require('url');
     const url_parts = url.parse(req.url, true);
