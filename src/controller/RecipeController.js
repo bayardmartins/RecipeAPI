@@ -7,71 +7,99 @@ const apiRecipePuppyURL = config.apiRecipePuppyURL;
 const apiGiphyURL = config.apiGiphyURL;
 const giphyApiKey = config.giphyApiKey;
 
-function getIngredientArray(pQuery){
-  var ingredientArray = pQuery.split(',');
-  if(ingredientArray.length <= 3){
+/**
+ * Transforma o input em um array de ingredientes.
+ * @param {string} pQuery query da url.
+ * @return {[string]} O array de ingredientes.
+ */
+function getIngredientArray(pQuery) {
+  const ingredientArray = pQuery.split(',');
+  if (ingredientArray.length <= 3) {
     ingredientArray.sort();
     return (ingredientArray);
   }
-    return (undefined);
+  return (undefined);
 };
 
+/**
+ * Faz requisição à API Recipe Puppy.
+ * @param {[string]} ingredientArray lista de ingredientes.
+ * @return {json} O retorno da api.
+ */
 async function getRecipesByIngredientList(ingredientArray) {
-  let url = apiRecipePuppyURL+'?i='+ingredientArray;
-  return requestPromise(url).then(response => {
-    if(response.statusCode === 200) {
-      return response.body
+  const url = apiRecipePuppyURL+'?i='+ingredientArray;
+  return requestPromise(url).then((response) => {
+    if (response.statusCode === 200) {
+      return response.body;
+    } else if (response.statusCode === 503) {
+      return response.statusCode;
     }
-    return Promise.reject(response.statusCode)
-    }).catch(err => {
-      return err
-  })
+    return Promise.reject(response.statusCode);
+  }).catch((err) => {
+    return err;
+  });
 }
 
-async function buildRecipeList (requestRecipes,ingredientArray) {
-  let recipeListBuilt = [];
+/**
+ * monta o objeto json na configuração desejada.
+ * @param {json} requestRecipes json retornado da getRecipesByIngredientList.
+ * @param {json} ingredientArray O array de ingredientes.
+ * @return {[string]} Dicionário com keywords e recipes.
+ */
+async function buildRecipeList(requestRecipes, ingredientArray) {
+  const recipeListBuilt = [];
   requestRecipeObject = JSON.parse(requestRecipes);
   let i = 0;
-    for (i; i < requestRecipeObject.results.length; i++) {
-      let gif = await getGif(requestRecipeObject.results[i].title);
-      recipeListBuilt[i] = {
-   	    "title": requestRecipeObject.results[i].title,
-   	    "ingredients": requestRecipeObject.results[i].ingredients,
-   	    "link": requestRecipeObject.results[i].href,
-   	    "gif": gif
-       }
-   };
+  for (i; i < requestRecipeObject.results.length; i++) {
+    const gif = await getGif(requestRecipeObject.results[i].title);
+    recipeListBuilt[i] = {
+      'title': requestRecipeObject.results[i].title,
+      'ingredients': requestRecipeObject.results[i].ingredients,
+      'link': requestRecipeObject.results[i].href,
+      'gif': gif,
+    };
+  };
 
-  let recipeList = {
-    "keywords": ingredientArray,
-    "recipes": recipeListBuilt,
+  const recipeList = {
+    'keywords': ingredientArray,
+    'recipes': recipeListBuilt,
   };
   return (recipeList);
 }
 
-function getGif(pTitle){
-  let url = `${apiGiphyURL}search?api_key=${giphyApiKey}&q=${pTitle}&limit=&offset=&rating=g&lang=en`;
-  return requestPromise(url).then(response => {
-    if(response.statusCode === 200) {
-      let res = JSON.parse(response.body); 
-      let gif = res.data[0].images.original.url;
+/**
+ * Faz requisição à API Giphy.
+ * @param {string} pTitle título da receita.
+ * @return {string} Link do gif.
+ */
+function getGif(pTitle) {
+  const url = `${apiGiphyURL}search?api_key=
+    ${giphyApiKey}&q=${pTitle}&limit=&offset=&rating=g&lang=en`;
+  return requestPromise(url).then((response) => {
+    if (response.statusCode === 200) {
+      const res = JSON.parse(response.body);
+      const gif = res.data[0].images.original.url;
       return gif;
+    } else if (response.statusCode === 503) {
+      return config.msgGiphyUnavailable;
     }
-    return Promise.reject(response.statusCode)
-    }).catch(err => {
-      console.log('erro '+err);
-      return err
-  })  
+    return Promise.reject(response.statusCode);
+  }).catch((err) => {
+    return err;
+  });
 };
 
 module.exports = {
-  async get (req,res) {
+  async get(req, res) {
     const url = require('url');
-    const url_parts = url.parse(req.url, true);
-    const query = url_parts.query.i;
+    const urlParts = url.parse(req.url, true);
+    const query = urlParts.query.i;
     const ingredientArray = getIngredientArray(query);
     const requestRecipes = await getRecipesByIngredientList(ingredientArray);
-    const recipeList = await buildRecipeList(requestRecipes,ingredientArray)
+    if (requestRecipes === 503) {
+      return res.send(config.msgRecipePuppyUnavailable);
+    }
+    const recipeList = await buildRecipeList(requestRecipes, ingredientArray);
     return res.json(recipeList);
-  }
-}
+  },
+};
