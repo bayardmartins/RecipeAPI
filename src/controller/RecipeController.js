@@ -1,5 +1,6 @@
-const axios = require('axios');
 const apiRecipePuppyURL = 'http://www.recipepuppy.com/api/';
+const apiGiphyURL = 'https://api.giphy.com/v1/gifs/'
+const giphyApiKey = 'xuPpgAnyMOuLRmqF3UjgCYvWRv6jLs24'
 const util = require('util');
 const request = require('request');
 const requestPromise = util.promisify(request);
@@ -7,18 +8,16 @@ const requestPromise = util.promisify(request);
 function getIngredientArray(pQuery){
   var ingredientArray = pQuery.split(',');
   if(ingredientArray.length <= 3){
-      return (ingredientArray);
+    ingredientArray.sort();
+    return (ingredientArray);
   }
-      return (undefined);
+    return (undefined);
 };
 
 async function getRecipesByIngredientList(ingredientArray) {
   let url = apiRecipePuppyURL+'?i='+ingredientArray;
-  console.log("getRecipesByIngredientList start")
   return requestPromise(url).then(response => {
-    console.log('getRecipesByIngredientList pre '+ response.statusCode)
     if(response.statusCode === 200) {
-      console.log('getRecipesByIngredientList iner');
       return response.body
     }
     return Promise.reject(response.statusCode)
@@ -30,16 +29,14 @@ async function getRecipesByIngredientList(ingredientArray) {
 async function buildRecipeList (requestRecipes,ingredientArray) {
   let recipeListBuilt = [];
   requestRecipeObject = JSON.parse(requestRecipes);
-  console.log('buildRecipeList start');
-  console.log(requestRecipeObject.results);
   let i = 0;
     for (i; i < requestRecipeObject.results.length; i++) {
-     console.log('buildRecipeList inner loop '+i);
-     recipeListBuilt[i] = {
+      let gif = await getGif(requestRecipeObject.results[i].title);
+      recipeListBuilt[i] = {
    	    "title": requestRecipeObject.results[i].title,
    	    "ingredients": requestRecipeObject.results[i].ingredients,
    	    "link": requestRecipeObject.results[i].href,
-   	    "gif": getGif(requestRecipeObject.results[i].title)
+   	    "gif": gif
        }
    };
 
@@ -51,12 +48,28 @@ async function buildRecipeList (requestRecipes,ingredientArray) {
 }
 
 function getGif(pTitle){
-    //todo: chamada a API 
-    let link = "www.google.com";
-    return (link);
+  let url = `${apiGiphyURL}search?api_key=${giphyApiKey}&q=${pTitle}&limit=&offset=&rating=g&lang=en`;
+  return requestPromise(url).then(response => {
+    if(response.statusCode === 200) {
+      let res = JSON.parse(response.body); 
+      let gif = res.data[0].images.original.url;
+      return gif;
+    }
+    return Promise.reject(response.statusCode)
+    }).catch(err => {
+      console.log('erro '+err);
+      return err
+  })  
 };
 
 module.exports = {
+  // async get (req,res) {
+  //   console.log('start')
+  //   const gif = await getGif('Pasta Simple Recipe');
+  //   console.log('sending' + gif);
+  //   return res.json(gif);
+  // }
+
   async get (req,res) {
     const url = require('url');
     const url_parts = url.parse(req.url, true);
@@ -64,7 +77,6 @@ module.exports = {
     const ingredientArray = getIngredientArray(query);
     const requestRecipes = await getRecipesByIngredientList(ingredientArray);
     const recipeList = await buildRecipeList(requestRecipes,ingredientArray)
-    return res.json(recipeList)
-    .catch(() => {return res.status(400).send("parâmetros enviados são inválidos")});
+    return res.json(recipeList);
   }
 }
