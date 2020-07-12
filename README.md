@@ -15,6 +15,8 @@ docker run -p 3000:3000 -d deliverymuchapi/docker
 
 ## Instruções sem Docker:
 
+npm install
+
 npm start
 
 ## Testando:
