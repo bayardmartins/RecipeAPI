@@ -73,8 +73,8 @@ async function buildRecipeList(requestRecipes, ingredientArray) {
  * @return {string} Link do gif.
  */
 function getGif(pTitle) {
-  const url = `${apiGiphyURL}search?api_key=
-    ${giphyApiKey}&q=${pTitle}&limit=&offset=&rating=g&lang=en`;
+  // eslint-disable-next-line max-len
+  const url = `${apiGiphyURL}search?api_key=${giphyApiKey}&q=${pTitle}&limit=&offset=&rating=g&lang=en`;
   return requestPromise(url).then((response) => {
     if (response.statusCode === 200) {
       const res = JSON.parse(response.body);
@@ -94,6 +94,9 @@ module.exports = {
     const url = require('url');
     const urlParts = url.parse(req.url, true);
     const query = urlParts.query.i;
+    if (!query) {
+      return res.send('parâmetros inválidos').status(400);
+    }
     const ingredientArray = getIngredientArray(query);
     const requestRecipes = await getRecipesByIngredientList(ingredientArray);
     if (requestRecipes === 503) {
