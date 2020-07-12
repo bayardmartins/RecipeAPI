@@ -95,12 +95,15 @@ module.exports = {
     const urlParts = url.parse(req.url, true);
     const query = urlParts.query.i;
     if (!query) {
-      return res.send('parâmetros inválidos').status(400);
+      return res.status(400).send('parâmetros inválidos');
     }
     const ingredientArray = getIngredientArray(query);
+    if (!ingredientArray) {
+      return res.status(400).send(config.msgMaxParams);
+    }
     const requestRecipes = await getRecipesByIngredientList(ingredientArray);
     if (requestRecipes === 503) {
-      return res.send(config.msgRecipePuppyUnavailable);
+      return res.status(503).send(config.msgRecipePuppyUnavailable);
     }
     const recipeList = await buildRecipeList(requestRecipes, ingredientArray);
     return res.json(recipeList);
